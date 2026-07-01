@@ -1,0 +1,6 @@
+name: claude-code-cli
+type: delegate
+adapter: compliant
+invoke: 'claude --bare -p "{task}" --output-format json --max-turns 12'
+description: Delegate a coding task to the Claude Code CLI and receive structured JSON output.
+permission: ask

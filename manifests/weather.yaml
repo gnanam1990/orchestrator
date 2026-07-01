@@ -1,0 +1,6 @@
+name: weather
+type: delegate
+adapter: compliant
+invoke: https://api.open-meteo.com/v1/forecast
+description: Fetch a weather forecast for a location from the Open-Meteo API.
+permission: auto

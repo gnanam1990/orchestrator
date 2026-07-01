@@ -1,0 +1,14 @@
+# Compiled binary (produced by `go build` at the module root)
+/orchestrator
+
+# Go test / build artifacts
+*.exe
+*.test
+*.out
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Editor / OS cruft
+.DS_Store
