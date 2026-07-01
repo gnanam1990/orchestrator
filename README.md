@@ -75,6 +75,8 @@ When:    2026-07-02T00:00:00Z
 
 (Example output. `weather` has permission `auto`, so it runs without a prompt. An entry with permission `ask` prompts for `y/n` approval first; `never` is rejected without running.)
 
+`run` exits `0` for the legitimate outcomes — success, no-match, and rejected — and exits `1` only when the outcome is an `error` (a selection, routing, or invocation failure), so scripts can detect a real failure via the exit status. The report is always printed either way.
+
 ## Architecture
 
 ```
