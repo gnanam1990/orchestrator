@@ -15,6 +15,7 @@ import (
 
 	"github.com/gnanam1990/orchestrator/catalog"
 	"github.com/gnanam1990/orchestrator/executor"
+	"github.com/gnanam1990/orchestrator/reporter"
 	"github.com/gnanam1990/orchestrator/selector"
 )
 
@@ -125,24 +126,14 @@ func runRun(args []string) error {
 		return err
 	}
 
+	// Selection, permission, and invocation all funnel into a single report:
+	// every run outcome (including a pipeline error) is presented through the
+	// reporter, so this is the only place run's output is produced. A catalog
+	// load failure above is a setup error, not a run outcome, so it still exits
+	// via the CLI error path.
 	sel := selector.New(selector.NewAnthropicCaller())
-	outcome, err := executor.New().Execute(context.Background(), task, manifests, sel, executor.NewStdinApprover())
-	if err != nil {
-		return err
-	}
+	outcome, execErr := executor.New().Execute(context.Background(), task, manifests, sel, executor.NewStdinApprover())
 
-	switch outcome.Decision {
-	case executor.DecisionNoMatch:
-		fmt.Println("no match")
-	case executor.DecisionRejectedNever:
-		fmt.Printf("%s: rejected — permission is \"never\"\n", outcome.Entry.Name)
-	case executor.DecisionRejectedByApprover:
-		fmt.Printf("%s: rejected — approval declined\n", outcome.Entry.Name)
-	case executor.DecisionInvoked:
-		fmt.Printf("picked:   %s (permission: %s)\n", outcome.Entry.Name, outcome.Entry.Permission)
-		fmt.Printf("invoked:  status %d in %s\n", outcome.Result.StatusCode, outcome.Result.Duration)
-		fmt.Println("--- output ---")
-		fmt.Println(outcome.Result.Output)
-	}
+	fmt.Print(reporter.Format(reporter.Build(task, outcome, execErr)))
 	return nil
 }

@@ -79,7 +79,9 @@ func New() *Executor {
 // No-match and rejections (never / approver-declined) come back as an Outcome
 // with a nil error: they are expected outcomes, distinguishable from real
 // failures (selection error, routing error, invocation error), which come back
-// as a non-nil error.
+// as a non-nil error. On a post-selection failure the returned Outcome still
+// carries Entry, so the failure can be attributed to the responsible entry;
+// callers must check the error before relying on the Outcome's Decision.
 func (e *Executor) Execute(ctx context.Context, task string, entries []catalog.Manifest, sel *selector.Selector, appr Approver) (Outcome, error) {
 	sr, err := sel.Select(ctx, task, entries)
 	if err != nil {
@@ -97,7 +99,7 @@ func (e *Executor) Execute(ctx context.Context, task string, entries []catalog.M
 	case catalog.PermissionAsk:
 		ok, err := appr.Approve(ctx, entry, task)
 		if err != nil {
-			return Outcome{}, fmt.Errorf("executor: approval for %q failed: %w", entry.Name, err)
+			return Outcome{Entry: entry}, fmt.Errorf("executor: approval for %q failed: %w", entry.Name, err)
 		}
 		if !ok {
 			return Outcome{Decision: DecisionRejectedByApprover, Entry: entry}, nil
@@ -105,7 +107,7 @@ func (e *Executor) Execute(ctx context.Context, task string, entries []catalog.M
 	case catalog.PermissionAuto:
 		// Proceed without asking.
 	default:
-		return Outcome{}, fmt.Errorf("executor: entry %q has unknown permission %q", entry.Name, entry.Permission)
+		return Outcome{Entry: entry}, fmt.Errorf("executor: entry %q has unknown permission %q", entry.Name, entry.Permission)
 	}
 
 	route := e.Route
@@ -114,12 +116,12 @@ func (e *Executor) Execute(ctx context.Context, task string, entries []catalog.M
 	}
 	ad, err := route(entry)
 	if err != nil {
-		return Outcome{}, fmt.Errorf("executor: routing %q failed: %w", entry.Name, err)
+		return Outcome{Entry: entry}, fmt.Errorf("executor: routing %q failed: %w", entry.Name, err)
 	}
 
 	result, err := ad.Invoke(ctx, entry, task)
 	if err != nil {
-		return Outcome{}, fmt.Errorf("executor: invoking %q failed: %w", entry.Name, err)
+		return Outcome{Entry: entry}, fmt.Errorf("executor: invoking %q failed: %w", entry.Name, err)
 	}
 	return Outcome{Decision: DecisionInvoked, Entry: entry, Result: result}, nil
 }
